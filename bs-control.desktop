@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=BS3 Control
+Name=BS Control
 GenericName=Laptop Cooler Control
 Comment=Fan gears, smart speed and lighting for Flydigi BS2/BS3 laptop coolers
-Exec=bs3-control
-Icon=bs3-control
+Exec=bs-control
+Icon=bs-control
 Categories=System;Settings;HardwareSettings;
 Keywords=flydigi;cooler;fan;bs3;bs2;cooling pad;
-StartupWMClass=bs3-control
+StartupWMClass=bs-control

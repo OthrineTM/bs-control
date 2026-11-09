@@ -21,10 +21,10 @@ from .theme import (
     Swatch, Toggle, font, stylesheet,
 )
 
-APP_NAME = "BS3 Control"
-APP_ID = "bs3-control"
-ICON_PATH = Path(__file__).resolve().parent.parent / "icons/bs3-control.svg"
-AUTOSTART = Path.home() / ".config/autostart/bs3-control.desktop"
+APP_NAME = "BS Control"
+APP_ID = "bs-control"
+ICON_PATH = Path(__file__).resolve().parent.parent / "icons/bs-control.svg"
+AUTOSTART = Path.home() / ".config/autostart/bs-control.desktop"
 PALETTE = ["#3e95ff", "#00e5ff", "#2fd27a", "#c6ff00", "#ffd400", "#ff8a00", "#ff2d55", "#ff00c8",
            "#8a2be2", "#ffffff"]
 TICK_MS = 1000
@@ -839,8 +839,8 @@ class Window(QWidget):
     def on_autostart(self, on):
         if on:
             AUTOSTART.parent.mkdir(parents=True, exist_ok=True)
-            AUTOSTART.write_text("[Desktop Entry]\nType=Application\nName=BS3 Control\n"
-                                 "Exec=bs3-control gui --tray\nIcon=bs3-control\nX-GNOME-Autostart-enabled=true\n")
+            AUTOSTART.write_text("[Desktop Entry]\nType=Application\nName=BS Control\n"
+                                 "Exec=bs-control gui --tray\nIcon=bs-control\nX-GNOME-Autostart-enabled=true\n")
         else:
             AUTOSTART.unlink(missing_ok=True)
 
@@ -853,7 +853,7 @@ class Window(QWidget):
                 pass
 
 
-INSTANCE_NAME = f"bs3-control-{os.getuid()}"
+INSTANCE_NAME = f"bs-control-{os.getuid()}"
 
 
 def signal_running_instance(show):

@@ -1,4 +1,4 @@
-"""Command line interface: `bs3-control <command>`; no command opens the GUI."""
+"""Command line interface: `bs-control <command>`; no command opens the GUI."""
 
 import argparse
 import sys
@@ -52,7 +52,7 @@ def print_status(d):
 
 
 def main(argv):
-    p = argparse.ArgumentParser(prog="bs3-control", description="Flydigi BS2/BS3 laptop cooler control for Linux")
+    p = argparse.ArgumentParser(prog="bs-control", description="Flydigi BS2/BS3 laptop cooler control for Linux")
     sub = p.add_subparsers(dest="cmd")
     sub.add_parser("gui", help="open the control panel (default)").add_argument("--tray", action="store_true")
     sub.add_parser("status", help="show cooler state")

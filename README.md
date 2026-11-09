@@ -1,4 +1,4 @@
-# BS3 Control
+# BS Control
 
 Linux control panel, tray icon and CLI for the **Flydigi BS3 Pro** laptop cooler (and the
 BS2 / BS2 Pro / BS3, which use the same protocol). It replaces Flydigi Space Station on Linux.
@@ -40,8 +40,8 @@ already awake, so smart speed never wakes a sleeping dGPU.
 Needs Python 3.10+ and PySide6 6.x. On Arch / CachyOS:
 
 ```bash
-git clone https://github.com/OthrineTM/bs3-control
-cd bs3-control
+git clone https://github.com/OthrineTM/bs-control
+cd bs-control
 sudo pacman -S pyside6
 sudo install -m644 70-flydigi-cooler.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger --subsystem-match=hidraw
 ./install.sh
@@ -52,24 +52,24 @@ Space Station's product image (`images/product/Cooler/bs3pro/main.png` inside
 `resources/app.asar`, unpack with `npx @electron/asar extract`) to `assets/bs3pro.png` before
 running `install.sh`. git ignores `assets/`. Without it the window shows the fan gauge only.
 
-`install.sh` installs per user into `~/.local/share/bs3-control` and adds a menu entry plus a
+`install.sh` installs per user into `~/.local/share/bs-control` and adds a menu entry plus a
 tray autostart. Remove everything with `./install.sh --uninstall`.
 
 ## CLI
 
 ```
-bs3-control                       # GUI
-bs3-control status
-bs3-control rpm
-bs3-control gear 3                # or silent / standard / strong / overclock
-bs3-control gear 2 --rpm 2200     # store a new speed for a gear
-bs3-control speed 1800            # hold a fixed speed (until the next 'gear')
-bs3-control accel 2
-bs3-control light breathing --color 3e95ff --color ff2d55 --brightness 80 --speed 60
-bs3-control light smart | off | on
-bs3-control gear-light off
-bs3-control auto-start on
-bs3-control smart-stop delayed
+bs-control                       # GUI
+bs-control status
+bs-control rpm
+bs-control gear 3                # or silent / standard / strong / overclock
+bs-control gear 2 --rpm 2200     # store a new speed for a gear
+bs-control speed 1800            # hold a fixed speed (until the next 'gear')
+bs-control accel 2
+bs-control light breathing --color 3e95ff --color ff2d55 --brightness 80 --speed 60
+bs-control light smart | off | on
+bs-control gear-light off
+bs-control auto-start on
+bs-control smart-stop delayed
 ```
 
 ## Protocol
