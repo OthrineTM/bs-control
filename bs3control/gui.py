@@ -6,8 +6,8 @@ import sys
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, QTimer, Qt, Signal
-from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QPainter, QPalette, QPixmap
+from PySide6.QtCore import QPointF, QRectF, QSettings, QTimer, Qt, Signal
+from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QPainter, QPainterPath, QPalette, QPen, QPixmap
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QColorDialog, QGridLayout, QHBoxLayout, QLabel, QMenu, QSlider,
@@ -42,20 +42,65 @@ def hexes(colors):
     return [QColor(c).name() for c in colors]
 
 
-def tray_icon(rpm, connected):
+def panel_text_color():
+    """Text color of the Plasma color scheme (what monochrome tray icons use)."""
+    path = Path.home() / ".config/kdeglobals"
+    try:
+        section = None
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("["):
+                section = line
+            elif section == "[Colors:Window]" and line.startswith("ForegroundNormal="):
+                r, g, b = (int(x) for x in line.split("=", 1)[1].split(",")[:3])
+                return QColor(r, g, b)
+    except (OSError, ValueError):
+        pass
+    return QColor("#fcfcfc")
+
+
+def mono_fan(p, color, size=64):
+    """Single-color fan glyph: gauge ring and seven blades."""
+    c = size / 2
+    p.setBrush(Qt.NoBrush)
+    p.setPen(QPen(color, size * 0.07, Qt.SolidLine, Qt.RoundCap))
+    m = size * 0.08
+    p.drawArc(QRectF(m, m, size - 2 * m, size - 2 * m), 225 * 16, -270 * 16)
+    p.setPen(Qt.NoPen)
+    p.setBrush(color)
+    for i in range(7):
+        p.save()
+        p.translate(c, c)
+        p.rotate(i * 360 / 7)
+        path = QPainterPath(QPointF(0, -size * 0.11))
+        path.cubicTo(QPointF(size * 0.14, -size * 0.15), QPointF(size * 0.17, -size * 0.30),
+                     QPointF(size * 0.05, -size * 0.36))
+        path.cubicTo(QPointF(size * 0.02, -size * 0.26), QPointF(-size * 0.02, -size * 0.18),
+                     QPointF(0, -size * 0.11))
+        p.drawPath(path)
+        p.restore()
+    p.drawEllipse(QPointF(c, c), size * 0.07, size * 0.07)
+
+
+def tray_icon(connected, mono=False):
     pm = QPixmap(64, 64)
     pm.fill(Qt.transparent)
     p = QPainter(pm)
     p.setRenderHint(QPainter.Antialiasing)
-    QIcon(str(ICON_PATH)).paint(p, 0, 0, 64, 64)
-    if not connected:
-        p.setOpacity(1)
-        p.setBrush(QColor(0, 0, 0, 150))
-        p.setPen(Qt.NoPen)
-        p.drawEllipse(36, 36, 26, 26)
-        p.setPen(MUTED)
-        p.setFont(font(16))
-        p.drawText(36, 36, 26, 26, Qt.AlignCenter, "×")
+    if mono:
+        color = panel_text_color()
+        if not connected:
+            color.setAlphaF(0.45)
+        mono_fan(p, color)
+    else:
+        QIcon(str(ICON_PATH)).paint(p, 0, 0, 64, 64)
+        if not connected:
+            p.setBrush(QColor(0, 0, 0, 150))
+            p.setPen(Qt.NoPen)
+            p.drawEllipse(36, 36, 26, 26)
+            p.setPen(MUTED)
+            p.setFont(font(16))
+            p.drawText(36, 36, 26, 26, Qt.AlignCenter, "×")
     p.end()
     return QIcon(pm)
 
@@ -385,6 +430,10 @@ class Window(QWidget):
         self.autostart.setChecked(AUTOSTART.exists())
         self.autostart.toggled.connect(self.on_autostart)
         lay.addWidget(self.autostart)
+        self.mono = Toggle("Monochrome tray icon", "Single color that follows the Plasma color scheme")
+        self.mono.setChecked(self.setting("tray/mono", False))
+        self.mono.toggled.connect(self.on_mono)
+        lay.addWidget(self.mono)
         return self.page(power, supply, app)
 
     def update_title(self):
@@ -394,7 +443,7 @@ class Window(QWidget):
     # --- tray -----------------------------------------------------------
 
     def build_tray(self):
-        self.tray = QSystemTrayIcon(tray_icon(0, False), self)
+        self.tray = QSystemTrayIcon(tray_icon(False, self.setting("tray/mono", False)), self)
         menu = QMenu()
         menu.addAction(QAction("Show", self, triggered=self.show_window))
         menu.addSeparator()
@@ -412,6 +461,17 @@ class Window(QWidget):
         self.tray.activated.connect(
             lambda reason: self.toggle_window() if reason == QSystemTrayIcon.Trigger else None)
         self.tray.show()
+
+    def update_tray_icon(self, connected):
+        mono = self.setting("tray/mono", False)
+        key = (connected, mono, panel_text_color().name() if mono else "")
+        if key != getattr(self, "_tray_key", None):
+            self._tray_key = key
+            self.tray.setIcon(tray_icon(connected, mono))
+
+    def on_mono(self, on):
+        self.put("tray/mono", on)
+        self.update_tray_icon(self.status is not None)
 
     def show_window(self):
         self.show()
@@ -458,7 +518,7 @@ class Window(QWidget):
         self.conn.setText(f"<span style='color:{AMBER.name()}'>{str(e).upper()}</span>")
         self.gauge.set_state(0, 0, 4000, False)
         self.pages.setEnabled(False)
-        self.tray.setIcon(tray_icon(0, False))
+        self.update_tray_icon(False)
         self.tray.setToolTip(f"{APP_NAME}: {e}")
 
     def send(self, fn):
@@ -574,7 +634,7 @@ class Window(QWidget):
         self.update_temps()
         mode = "Smart speed" if self.fan_mode == "smart" else device.GEARS.get(st.gear, "")
         t = self.hottest()
-        self.tray.setIcon(tray_icon(st.rpm, True))
+        self.update_tray_icon(True)
         self.tray.setToolTip(f"{self.dev.model}: {st.rpm} rpm ({mode})" + (f" · {t:.0f}°C" if t else ""))
         if self.accel.value() != st.accel:
             self.accel.set_value(st.accel)
