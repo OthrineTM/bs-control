@@ -1,2 +1,5 @@
 # Flydigi BS2 / BS2 Pro / BS3 / BS3 Pro laptop coolers: let the logged-in user talk to the HID interface.
+# USB
 KERNEL=="hidraw*", ATTRS{idVendor}=="37d7", ATTRS{idProduct}=="100[1-5]", TAG+="uaccess"
+# Bluetooth (BLE HID through uhid)
+KERNEL=="hidraw*", KERNELS=="0005:37D7:100[1-5].*", TAG+="uaccess"

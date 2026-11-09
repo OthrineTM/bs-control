@@ -115,6 +115,8 @@ class Info:
 
 
 def find_hidraw():
+    """Return (/dev/hidrawN, product id, bus) of the first cooler, over USB or Bluetooth."""
+    found = []
     for node in sorted(Path("/sys/class/hidraw").glob("hidraw*")):
         try:
             uevent = (node / "device/uevent").read_text()
@@ -122,11 +124,39 @@ def find_hidraw():
             continue
         for line in uevent.splitlines():
             if line.startswith("HID_ID="):
-                _bus, vid, pid = line[7:].split(":")
-                vid, pid = int(vid, 16), int(pid, 16)
+                bus, vid, pid = (int(x, 16) for x in line[7:].split(":"))
                 if vid == VENDOR_ID and pid & 0xFF00 == 0x1000:
-                    return f"/dev/{node.name}", pid
-    return None, None
+                    found.append((bus != 0x03, f"/dev/{node.name}", pid, bus))
+    if not found:
+        return None, None, None
+    _, path, pid, bus = min(found)  # prefer USB when both are there
+    return path, pid, bus
+
+
+def output_report(path):
+    """(report id, length) of the output report, from the HID report descriptor.
+
+    Over USB the cooler has no report IDs and 31-byte output reports; over Bluetooth it uses
+    report ID 2 with 24 bytes.
+    """
+    try:
+        desc = Path(f"/sys/class/hidraw/{Path(path).name}/device/report_descriptor").read_bytes()
+    except OSError:
+        return 0, 31
+    i, rid, count, out = 0, 0, 0, None
+    while i < len(desc):
+        b = desc[i]
+        size = (0, 1, 2, 4)[b & 3]
+        val = int.from_bytes(desc[i + 1:i + 1 + size], "little")
+        tag = b & 0xFC
+        if tag == 0x84:
+            rid = val
+        elif tag == 0x94:
+            count = val
+        elif tag == 0x90:
+            out = (rid, count)
+        i += 1 + size
+    return out or (0, 31)
 
 
 def packet(cmd, payload=b""):
@@ -137,9 +167,9 @@ def packet(cmd, payload=b""):
 
 class Cooler:
     def __init__(self, path=None):
-        pid = None
+        pid = bus = None
         if path is None:
-            path, pid = find_hidraw()
+            path, pid, bus = find_hidraw()
         if path is None:
             raise CoolerError("Cooler not found")
         try:
@@ -149,6 +179,8 @@ class Cooler:
         except OSError as e:
             raise CoolerError(str(e)) from None
         self.path = path
+        self.bluetooth = bus == 0x05
+        self.out_id, self.out_len = output_report(path)
         self.product_id = pid or 0x1004
         self.model = MODELS.get(self.product_id, "BS cooler")
         self.last_status = None
@@ -195,7 +227,7 @@ class Cooler:
         for _ in range(retries):
             self.drain()
             try:
-                os.write(self.fd, b"\x00" + packet(cmd, payload))
+                os.write(self.fd, bytes([self.out_id]) + packet(cmd, payload)[:self.out_len])
             except OSError as e:
                 raise CoolerError("Cooler disconnected") from e
             end = time.monotonic() + timeout

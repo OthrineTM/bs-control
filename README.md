@@ -117,7 +117,8 @@ A lighting upload is a 6-byte header (`00 02`, loop start, loop end, 11 − fram
 Space Station caps smart speed by power supply: BS2 Pro / BS3 Pro 2700 rpm on plain USB,
 3300 rpm with QC or PD 18 W+, 4000 rpm with PD 27 W+.
 
-Untested: Bluetooth (the cooler also exposes the protocol over BLE HID), firmware updates
+Bluetooth (BLE HID) works too: there the reports use ID 1 (in) and 2 (out) with 24 bytes, which the
+app reads from the report descriptor. Untested: firmware updates
 (still need Space Station on Windows) and the BS2 / BS3 non-Pro models.
 
 ## License
