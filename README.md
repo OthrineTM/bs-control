@@ -47,13 +47,26 @@ sudo install -m644 70-flydigi-cooler.rules /etc/udev/rules.d/ && sudo udevadm co
 ./install.sh
 ```
 
-The product photo in the window belongs to Flydigi, so it isn't included. To show it, copy
-Space Station's product image (`images/product/Cooler/bs3pro/main.png` inside
-`resources/app.asar`, unpack with `npx @electron/asar extract`) to `assets/bs3pro.png` before
-running `install.sh`. git ignores `assets/`. Without it the window shows the fan gauge only.
+The product photo in the window belongs to Flydigi, so it isn't included.
+The application will show only the fan gauge if the required pictures are not present when installing it.
 
 `install.sh` installs per user into `~/.local/share/bs-control` and adds a menu entry plus a
 tray autostart. Remove everything with `./install.sh --uninstall`.
+
+## [Optional] Add product images to the interface
+
+The product photo in the window belongs to Flydigi, so it isn't included. To show it, you'll have to copy the images from Space Station's `resources/app.asar`.
+
+### Resource location
+The `app.asar` file is located in `C:\Program Files\Flydigi Space Station\resources\app.asar` in Windows, so you'll have to copy it first to a folder within your Linux installattion to properly extract it using [@electron/asar - Electron Archive](https://github.com/electron/asar).
+
+#### Extraction procedure
+
+1. After installing a copy of [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm), add the @electron/asar package by running `npm install --engine-strict @electron/asar`.
+2. Go into the folder where the `app.asar` is located
+3. Run `npx @electron/asar extract app.asar .` (This will output a hidden folder named `.vite`, where the `assets` folder will reside under `.vite/build/assets`).
+4. Copy the resulting `assets` folder to within the folder where you've saved this repository.
+5. Continue with the regular installation steps.
 
 ## CLI
 

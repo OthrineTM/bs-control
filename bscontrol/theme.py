@@ -17,6 +17,9 @@ from PySide6.QtWidgets import QAbstractButton, QFrame, QSizePolicy, QWidget
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
+COOLER_ASSETS = ASSETS / "images" / "product" / "Cooler"
+PRODUCT_DIRS = {0x1001: "bs2", 0x1002: "bs2pro", 0x1003: "bs3", 0x1004: "bs3pro"}
+DEFAULT_PRODUCT = 0x1004  # Product to show before a cooler connects
 
 ACCENT = QColor("#3e95ff")
 BG = QColor("#121315")
@@ -65,6 +68,22 @@ def stylesheet():
     QScrollArea, QScrollArea > QWidget > QWidget {{ background: transparent; border: none; }}
     """
 
+def product_image(product_id=None, variant=None):
+    """Return the QPixmap for a cooler model, falling back to the old flat file names."""
+    candidates = []
+    folder = PRODUCT_DIRS.get(product_id)
+    if folder:
+        base = COOLER_ASSETS / folder
+        if variant is not None:
+            candidates.append(base / str(variant) / "main.png")
+        candidates.append(base / "main.png")
+    candidates += [ASSETS / "bs3pro.png", ASSETS / "main.png"]
+    for path in candidates:
+        if path.is_file():
+            pixmap = QPixmap(str(path))
+            if not pixmap.isNull():
+                return pixmap
+    return None
 
 class Card(QFrame):
     """Rounded card with a title."""
@@ -235,11 +254,16 @@ class FanGauge(QWidget):
         self.timer = QTimer(self, interval=33, timeout=self._tick)
         self.timer.start()
         self.setMinimumSize(240, 240)
-        self.product = None
-        for name in ("bs3pro.png", "main.png"):
-            if (ASSETS / name).exists():
-                self.product = QPixmap(str(ASSETS / name))
-                break
+        self._product_key = (DEFAULT_PRODUCT, None)
+        self.product = product_image(DEFAULT_PRODUCT)
+
+    def set_product(self, product_id, variant=None):
+        """Swap the cooler image once the connected model is known."""
+        if (product_id, variant) == self._product_key:
+            return
+        self._product_key = (product_id, variant)
+        self.product = product_image(product_id, variant)
+        self.update()
 
     def set_state(self, rpm, target, max_rpm, connected):
         self.rpm, self.target, self.max_rpm, self.connected = rpm, target, max(max_rpm, 1), connected

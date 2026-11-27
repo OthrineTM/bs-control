@@ -437,7 +437,7 @@ class Window(QWidget):
         return self.page(power, supply, app)
 
     def update_title(self):
-        model = self.dev.model if self.dev else "BS3 Pro"
+        model = self.dev.model if self.dev else "Cooler"
         self.title.setText(f"<span style='color:{ACCENT.name()}'>FLYDIGI</span> {model.upper()}")
 
     # --- tray -----------------------------------------------------------
@@ -498,6 +498,7 @@ class Window(QWidget):
             self.show_error(e)
             return False
         self.update_title()
+        self.gauge.set_product(self.dev.product_id)
         self.last_speed = None
         self.rgb_smart_level = None
         if self.fan_mode == "smart":
